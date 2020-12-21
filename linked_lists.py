@@ -1,5 +1,5 @@
 # Custom Linked List
-# I did it while reading the following article: https://realpython.com/linked-lists-python/
+# I did it while I was reading the following article: https://realpython.com/linked-lists-python/
 
 class LLO:
     def __init__(self, data, next=None):
