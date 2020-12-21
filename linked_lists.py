@@ -1,4 +1,12 @@
-# Custom Linked List
+# INDEX
+# 1 - Custom Linked List (singly linked lists) - 2020/12/20
+# 2 - Circular Doubly Linked List - 2020/12/20
+
+
+
+
+#################################################
+# Custom Linked List (singly linked lists)
 # I did it while I was reading the following article: https://realpython.com/linked-lists-python/
 
 class LLO:
@@ -148,3 +156,108 @@ try:
 except IndexError:
     pass
 
+
+#################################################
+# Circular Doubly Linked List
+# Inspired in https://realpython.com/linked-lists-python/
+class CDLLItem:
+    def __init__(self, data, previous, next):
+        self.data = data
+        self.previous = previous
+        self.next = next
+    def __repr__(self):
+        return str(self)
+    def __str__(self):
+        return str(self.data)
+
+class CDLL:
+    def __init__(self, initial = None):
+        node = None
+        for item in initial:
+            node = CDLLItem(item, node, None)
+        self.rear = node
+        while node.previous:
+            node.previous.next = node
+            node = node.previous
+        self.front = node
+        self.front.previous = self.rear
+        self.rear.next = self.front
+    def __repr__(self):
+        return str(self)
+    def __str__(self):
+        return str([x for x in self])
+    def __iter__(self):
+        node = self.front
+        while True:
+            yield node
+            node = node.next
+            if node == self.front:
+                break
+    def __reverse__(self):
+        node = self.rear
+        while True:
+            yield node
+            node = node.previous
+            if node == self.rear:
+                break
+    def __len__(self):
+        return len([x for x in self])
+    def __getitem__(self, n):
+        iteration = iter(self)
+        for x in range(n):
+            iteration.__next__()
+        return iteration.__next__()
+    @staticmethod
+    def _insert(item, previous, next):
+        new_item = CDLLItem(item, previous, next)
+        previous.next = new_item
+        next.previous = new_item
+        return new_item
+    @staticmethod
+    def _remove(item):
+        item.next.previous = item.previous
+        item.previous.next = item.next
+    def append(self, item):
+        new_item = self._insert(item, self.rear, self.front)
+        self.rear = new_item
+    def appendleft(self, item):
+        new_item = self._insert(item, self.rear, self.front)
+        self.front = new_item
+    def pop(self):
+        self._remove(self.rear)
+        self.rear = self.front.previous
+    def popleft(self):
+        self._remove(self.front)
+        self.front = self.rear.next
+    def cycle(self):
+        node = self.front
+        while True:
+            yield node
+            node = node.next
+    def reversed_cycle(self):
+        node = self.rear
+        while True:
+            yield node
+            node = node.previous
+
+cdll = CDLL([1, 2, 3, 4, 5])
+assert str(cdll) == '[1, 2, 3, 4, 5]'
+cdll.append(6)
+assert str(cdll) == '[1, 2, 3, 4, 5, 6]'
+cdll.pop()
+assert str(cdll) == '[1, 2, 3, 4, 5]'
+cdll.appendleft(0)
+assert str(cdll) == '[0, 1, 2, 3, 4, 5]'
+cdll.popleft()
+assert str(cdll) == '[1, 2, 3, 4, 5]'
+assert len(cdll) == 5
+assert str(cdll[0]) == '1'
+assert str(cdll[2]) == '3'
+assert str([x for x in reversed(cdll)]) == '[5, 4, 3, 2, 1]'
+cycle = cdll.cycle()
+reversed_cycle = cdll.reversed_cycle()
+for x in range(11):
+    cycle.__next__()
+    reversed_cycle.__next__()
+assert str(cycle.__next__()) == '2'
+assert str(reversed_cycle.__next__()) == '4'
