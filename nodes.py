@@ -121,8 +121,6 @@ def play(nodes_amount=10, complexity=2, cheats=False):
 def get_step(node, print_position = True):
     while True:
         try:
-            # User can't see the next steps Node index.
-            # The player only knows what the ending is once she has reached it.
             message = f'Choose a path:'
             if print_position:
                 message = f'Now you\'re at {node}. {message}'
