@@ -1,4 +1,8 @@
+# Requires spanish trained data https://github.com/tesseract-ocr/tessdata_best/blob/master/spa.traineddata
+
+
 image_path = 'test.jpg'
+tesseract_config = '--oem 3'
 
 
 import copy
@@ -6,42 +10,46 @@ import json
 import re
 import cv2
 import pytesseract
+import numpy as np
 from matplotlib import pyplot as plt
 from pytesseract import Output
 
 # Preprocessing
 
-img = cv2.imread(image_path,0)
-thresh = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,2)
+## - Rotate the image
+# https://www.pyimagesearch.com/2017/02/20/text-skew-correction-opencv-python/
+img = cv2.imread(image_path)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+gray = cv2.bitwise_not(gray)
+thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 5, 5)
+coords = np.column_stack(np.where(thresh > 0))
+angle = cv2.minAreaRect(coords)[-1]
+angle = -(90 + angle) if angle < -45 else -angle
+h, w = img.shape[:2]
+center = (w // 2, h // 2)
+M = cv2.getRotationMatrix2D(center, angle, 1.0)
+rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+cv2.imwrite('rotated.png', rotated)
+
+
+img = cv2.imread('rotated.png', 0) if angle else cv2.imread(image_path, 0)
+thresh = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
 cv2.imwrite('pre_processed.jpg', thresh)
 
-
 """
-ret,thresh1 = cv2.threshold(img,120,255,cv2.THRESH_BINARY)
-ret,thresh2 = cv2.threshold(img,120,255,cv2.THRESH_BINARY_INV)
-ret,thresh3 = cv2.threshold(img,120,255,cv2.THRESH_TRUNC)
-ret,thresh4 = cv2.threshold(img,120,255,cv2.THRESH_TOZERO)
-ret,thresh5 = cv2.threshold(img,120,255,cv2.THRESH_TOZERO_INV)
-thresh6 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,2)
-thresh7 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
-ret,thresh8 = cv2.threshold(img,195,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-blur = cv2.GaussianBlur(img,(5,5),0)
-ret, thresh9 = cv2.threshold(blur,195,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+# Compare thresholding methods
+thresh1 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,5,5)
+thresh2 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,2)
+thresh3 = cv2.adaptiveThreshold(blur,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,11,11)
+thresh4 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,15, 15)
 data = [
-	('Original Image', img),
-	('BINARY',thresh1),
-	('BINARY_INV', thresh2),
-	('TRUNC', thresh3),
-	('TOZERO',thresh4),
-	('TOZERO_INV', thresh5),
-	('ADAPT_MEAN_BINARY', thresh6),
-	('ADAPT_GAUSS_BINARY', thresh7),
-	('BINARY+OTSU', thresh8),
-	('BLUR', blur),
-	('BINARY+OTSU w BLUR', thresh9),
+	('ADAPT BIN (5, 5)', thresh1),
+	('ADAPT BIN (11, 2)', thresh2),
+	('ADAPT BIN (11, 11)', thresh3),
+	('ADAPT BIN (15, 15)', thresh4),
 ]
 for i, info in enumerate(data):
-	plt.subplot(4,3,i+1),plt.imshow(info[1],'gray',vmin=0,vmax=255)
+	plt.subplot(2,2,i+1),plt.imshow(info[1],'gray',vmin=0,vmax=255)
 	plt.title(info[0])
 	plt.xticks([]),plt.yticks([])
 
@@ -51,7 +59,7 @@ plt.show()
 # Text Detection
 
 preprocessed_img = cv2.imread('pre_processed.jpg')
-d = pytesseract.image_to_data(preprocessed_img, output_type=Output.DICT)
+d = pytesseract.image_to_data(preprocessed_img, output_type=Output.DICT, config=tesseract_config)
 n_boxes = len(d['level'])
 for i in range(n_boxes):
 	x, y, w, h = d['left'][i], d['top'][i], d['width'][i], d['height'][i]
@@ -62,9 +70,72 @@ cv2.imwrite('text_detection.jpg', preprocessed_img)
 # Text Recognition
 
 text_detected_img = copy.deepcopy(thresh)
-extracted_text = pytesseract.image_to_string(text_detected_img)
-default = '\n'.join(line for line in extracted_text.rsplit('\n') if line.strip())
-print(default)
+
+## - Spanish lang
+extracted_text = pytesseract.image_to_string(text_detected_img, lang='spa', config=tesseract_config)
+formatted_text = '\n'.join(line for line in extracted_text.rsplit('\n') if line.strip())
+print(formatted_text)
+"""
+[EAN LACTAL SALVADO “
+PAN DE MICA PAQUETE
+2 [PAN DE MIGA TAO SALVADO:
+PAN HAMBURGUESA PAQUETE RA
+"IBAN CHOI
+[PAN PARA PERNIL PAQUETE X 6.
+[PAN PANCHOS PAQUETE X 6:
+AN HAMBURGUESA (FOR BOLSA]
+PAN DE LOMO PAQUETEX 2 —
+- [PAN TORPEDO
+[GRISINES ¡TALANOS
+DAN DE VIENA LARGOS CORTOS
+-—- |GRÍSINES COMUNES -
+E
+CAN DE LOMO KEOLSA CUADRADO —
+[GRISINES CHATOS SABORIZADOS -
+PAN PERNILCRICO (P/eDi5A) — [GRISINES CON SEMILLAS
+PO == ISRISINES SALVADO —_-—
+IMEDIALUNAS SALADAS. [GALLETITAS CON SEMILLAS
+MADIALUNAS DULCES PAQUETE TOSTADAS. — ——!
+FACTURAS GRANDES -
+BIZCOCHOS DE AGUA- SALVADO
+- [FACTURAS DULCE LECHE Y AZUCAR.
+PAÑDE MIGA ENTERO “> —
+FACTURAS HOJALDRE -
+PÁN DE MIGA ENTERO SALVADO -
+r [EACTURAS VIGILANTES ——— [PRE PIZZAS
+| [EACTURAS= SACRAMENTOS. PIZETAS EIC
+“ [FACTURAS CHICAS ———— TARTELETAS ———  -—
+PATITAS: CHURRINCAIS — ———- [ORTA BIZCOCHUELO:
+OONAS—- + [TORTA MIXTA ——
+E -— |TORTAHOJALDRE — ——
+BIZCOCHOS DULCES: —— 273: [TORTA POR PORCIÓN.
+[BIZCOCHOS MEMBRILLO E iTANTÁS DUES —
+[BIZCOCHOS CREMA PASTELERA A — [MASAS FINAS -
+BIZCOCHOS BATATA =— — - -
+BizcOcHOS CRIOLUTOS -
+EIZCOCHUELOS SIN NADA
+BIZCOCHOS CASERITOS (GRASA)
+SCONES” ——
+BIZCOCHOS SALADOS DE AGUÁ:
+BIZCOCHOSSALADOS HOJALORE:
+BIZCOCHOS= DE QUESO —
+CHICHARONES
+ILFAJORES MADRILEÑOS:
+LEAJORES SANTAFESINOS:-
+LEAJORES MAICENA :
+ALMERITAS:: ——
+ASITAS:SABORIZADAS -—
+ERENGUES CHICOS CON DULCE:
+ERENGADOS GRANDES:
+TA FROLAS GRANDES
+TA FROLAS CHICAS: +
+INES. — —
+"""
+
+## - Default lang
+extracted_text = pytesseract.image_to_string(text_detected_img, config=tesseract_config)
+formatted_text = '\n'.join(line for line in extracted_text.rsplit('\n') if line.strip())
+print(formatted_text)
 """
 PAN LACTAL SALVADO ~
 PAN DE IGA PAGUETE
@@ -121,3 +192,5 @@ TA FROLAS GRANDES
 TA FROLAS CHICAS:
 INES. * ~ _
 """
+
+## - Comparison: default lang trained data generates better results than the spanish one.
