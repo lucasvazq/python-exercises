@@ -1,6 +1,5 @@
 ## Python exercises repository.
 
-Here I keep Python exercises or challenges done on the go.
+Here I keep python exercises, practices and challenges done on the go.
 
-What will you not find here?
-- Correctly formatted code.
+This repository does not represent at all the way I work and format my code.
