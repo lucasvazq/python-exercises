@@ -2,7 +2,9 @@ Script para obtener datos geográficos de Argentina
 
 Herramientas complementarias que nos permite recortar parte de los datos y minificarlos: https://mapshaper.org/
 
-Resultado final: 
+Resultado final:
+
+![Datos procesados](https://github.com/lucasvazq/python-exercises/blob/main/geography/2021-02-27_13-35-08.png?raw=true)
 
 ## Rutas provinciales (geojson)
 ```python
